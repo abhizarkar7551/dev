@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-key')
+        PROJECT_ID = "your-project-id"
+        REGION     = "asia-south1"
+        REPO       = "my-repo"
+        IMAGE      = "demo-app"
+        TAG        = "v${BUILD_NUMBER}"
+        CLUSTER    = "demo-gke"
+        ZONE       = "asia-south1-a"
+    }
+
+    stages {
+        stage('GCP Auth') {
+            steps {
+                sh '''
+                  gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                  gcloud config set project $PROJECT_ID
+                  gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+                '''
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                  docker build -t $IMAGE:$TAG app/
+                  docker tag $IMAGE:$TAG $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG
+                '''
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                  docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG
+                '''
+            }
+        }
+
+        stage('Update YAML') {
+            steps {
+                sh '''
+                  sed -i "s|REPLACE_ME_IMAGE|$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG|g" k8s/deployment.yaml
+                '''
+            }
+        }
+
+        stage('Deploy to GKE') {
+            steps {
+                sh '''
+                  gcloud container clusters get-credentials $CLUSTER --zone $ZONE
+                  kubectl apply -f k8s/
+                '''
+            }
+        }
+    }
+}

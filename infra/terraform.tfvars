@@ -1,0 +1,10 @@
+project_id        = "prod-project-477306"
+region            = "us-central1"
+zone              = "us-central1-a"
+node_machine_type = "e2-medium"
+node_disk_size_gb = 50
+min_node_count    = 1
+max_node_count    = 3
+vpc_name          = "dev-vpc"
+subnet_name       = "dev-subnet"
+subnet_ip_cidr    = "10.0.0.0/16"
