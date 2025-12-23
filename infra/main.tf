@@ -72,6 +72,7 @@ resource "google_container_cluster" "gke_cluster" {
     enabled  = true
     provider = "CALICO"
   }
+ deletion_protection = false
 }
 
 # -----------------------------
