@@ -1,0 +1,53 @@
+pipeline {
+    agent { label 'agent-v' }
+
+    environment {
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcr-sa-key')
+        TERRAFORM_DIR = 'infra'
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/abhizarkar7551/dev.git'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir("${TERRAFORM_DIR}") {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir("${TERRAFORM_DIR}") {
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir("${TERRAFORM_DIR}") {
+                    input message: "Do you want to apply Terraform changes?"
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo "Infra created successfully. Triggering CI pipeline..."
+            build job: 'ci', wait: false
+        }
+        failure {
+            echo "Infra pipeline failed. CI pipeline will NOT run."
+        }
+    }
+}
