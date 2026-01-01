@@ -1,60 +1,52 @@
+#ci pipeline
+
 pipeline {
-    agent any
+    agent { label 'agent-v' } 
 
     environment {
-        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-key')
-        PROJECT_ID = "your-project-id"
-        REGION     = "asia-south1"
-        REPO       = "my-repo"
-        IMAGE      = "demo-app"
-        TAG        = "v${BUILD_NUMBER}"
-        CLUSTER    = "demo-gke"
-        ZONE       = "asia-south1-a"
+        IMAGE_NAME = "myapp"                     
+        IMAGE_TAG  = "latest"                    
+        GCP_PROJECT = "prod-project-477306"    
+        GCR_REGION = "us"             
+        GCR_IMAGE = "${GCR_REGION}.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
-        stage('GCP Auth') {
+        stage('Checkout Code') {
             steps {
-                sh '''
-                  gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                  gcloud config set project $PROJECT_ID
-                  gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
-                '''
+                git branch: 'main', url: 'https://github.com/abhizarkar7551/dev.git'
             }
         }
 
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                  docker build -t $IMAGE:$TAG app/
-                  docker tag $IMAGE:$TAG $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG
-                '''
+                script {
+                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}", "./app")
+                }
             }
         }
 
-        stage('Push Image') {
+        stage('Push to GCR') {
             steps {
-                sh '''
-                  docker push $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG
-                '''
+                withCredentials([file(credentialsId: 'gcr-sa-key', variable: 'GCP_KEY')]) {
+                    script {
+                        sh "gcloud auth activate-service-account --key-file=${GCP_KEY}"
+                        sh "gcloud auth configure-docker --quiet"
+                        sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${GCR_IMAGE}"
+                        sh "docker push ${GCR_IMAGE}"
+                    }
+                }
             }
         }
+    }
 
-        stage('Update YAML') {
-            steps {
-                sh '''
-                  sed -i "s|REPLACE_ME_IMAGE|$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$TAG|g" k8s/deployment.yaml
-                '''
-            }
+    post {
+        success {
+            echo "CI pipeline succeeded. Triggering CD pipeline..."
+            build job: 'cd', wait: false
         }
-
-        stage('Deploy to GKE') {
-            steps {
-                sh '''
-                  gcloud container clusters get-credentials $CLUSTER --zone $ZONE
-                  kubectl apply -f k8s/
-                '''
-            }
+        failure {
+            echo "CI pipeline failed. CD pipeline will NOT run."
         }
     }
 }
