@@ -40,18 +40,17 @@ pipeline {
         }
     }
 
-/*
+
     post {
         success {
             echo "CI pipeline succeeded. Triggering CD pipeline..."
-            build job: 'cd', wait: false
+            build job: 'cd-pipeline', wait: false
         }
         failure {
             echo "CI pipeline failed. CD pipeline will NOT run."
         }
     }
 
-*/
 }
 
 
