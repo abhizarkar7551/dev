@@ -1,4 +1,4 @@
-#ci pipeline
+//ci pipeline
 
 pipeline {
     agent { label 'jenkins-agent' } 
