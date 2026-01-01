@@ -24,12 +24,13 @@ kind: Service
 metadata:
   name: admin-service
 spec:
-  type: ClusterIP
+  type: NodePort        # <- must be NodePort
   selector:
     app: admin
   ports:
-  - port: 80
-    targetPort: 80
-# admin-service.yaml
+    - port: 80
+      targetPort: 80
+      nodePort: 30080   # optional, K8s will auto-assign if omitted
+
 
 
