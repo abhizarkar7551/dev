@@ -1,23 +1,12 @@
-# ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: my-ingress
+  name: admin-ingress
   annotations:
-    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.class: "gce"        # GCP GKE Ingress controller
+    networking.gke.io/managed-certificates: "admin-cert"  # optional, for HTTPS
 spec:
   rules:
-  - host: api.a-sysops.in
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: api-service
-            port:
-              number: 80
-  
   - host: admin.a-sysops.in
     http:
       paths:
@@ -28,4 +17,5 @@ spec:
             name: admin-service
             port:
               number: 80
+
 
