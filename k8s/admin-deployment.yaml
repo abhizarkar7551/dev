@@ -1,75 +1,35 @@
-# -------------------------------
-# Deployment for admin app
-# -------------------------------
+# admin-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: admin-deployment
-  labels:
-    app: admin-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: admin-app
+      app: admin
   template:
     metadata:
       labels:
-        app: admin-app
+        app: admin
     spec:
       containers:
-        - name: admin-container
-          image: us.gcr.io/prod-project-477306/myapp:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 80
-          resources:
-            requests:
-              cpu: 250m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
-
+      - name: admin-container
+        image: us.gcr.io/prod-project-477306/myapp:latest # Replace with your admin Docker image
+        ports:
+        - containerPort: 80
 ---
-# -------------------------------
-# Service for admin app
-# -------------------------------
 apiVersion: v1
 kind: Service
 metadata:
   name: admin-service
-  labels:
-    app: admin-app
 spec:
-  selector:
-    app: admin-app
   type: ClusterIP
+  selector:
+    app: admin
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
+  - port: 80
+    targetPort: 80
+# admin-service.yaml
 
----
-# -------------------------------
-# Ingress for admin app
-# -------------------------------
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: admin-ingress
-  annotations:
-    kubernetes.io/ingress.class: "gce"
-    networking.gke.io/managed-certificates: "admin-cert"
-spec:
-  rules:
-    - host: admin.a-sysops.in
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: admin-service
-                port:
-                  number: 80
+
