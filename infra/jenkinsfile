@@ -33,22 +33,20 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir("${TERRAFORM_DIR}") {
-                    // Ask for manual approval
-                    input message: "Do you want to apply Terraform changes?"
+                    input message: "Do you want to APPLY Terraform changes?"
                     sh 'terraform apply -auto-approve tfplan'
                 }
             }
         }
 
- stage('Terraform Apply') {
+        stage('Terraform Destroy') {
             steps {
                 dir("${TERRAFORM_DIR}") {
-                    // Ask for manual approval
-                    input message: "Do you want to apply Terraform changes?"
-                    sh 'terraform destroy -auto-approve tfplan'
+                    input message: "Do you want to DESTROY Terraform infrastructure?"
+                    sh 'terraform destroy -auto-approve'
                 }
             }
         }
 
     } // end of stages
-
+}
