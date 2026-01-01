@@ -1,8 +1,8 @@
 pipeline {
-    agent { label 'agent-v' }
+    agent { label 'jenkins-agent' }
 
     environment {
-        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcr-sa-key')
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('my-global-sa')
         TERRAFORM_DIR = 'infra'
     }
 
