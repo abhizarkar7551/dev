@@ -1,0 +1,71 @@
+# cd pipeline
+
+pipeline {
+    agent { label 'agent-v' }
+
+    environment {
+        GCP_PROJECT = "prod-project-477306"
+        GKE_CLUSTER = "gke-standard-cluster"  // your cluster name
+        GKE_REGION  = "us-central1-a"        // your cluster region/zone
+        IMAGE_NAME  = "myapp"
+        IMAGE_TAG   = "latest"                // or use BUILD_NUMBER for versioning
+        GCR_IMAGE   = "us.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/abhizarkar7551/dev.git'
+            }
+        }
+
+        stage('Authenticate to GCP') {
+            steps {
+                withCredentials([file(credentialsId: 'gcr-sa-key', variable: 'GCP_KEY')]) {
+                    sh '''
+                      gcloud auth activate-service-account --key-file=$GCP_KEY
+                      gcloud config set project ${GCP_PROJECT}
+                    '''
+                }
+            }
+        }
+
+        stage('Get GKE Credentials') {
+            steps {
+                sh '''
+                  gcloud container clusters get-credentials ${GKE_CLUSTER} \
+                  --region ${GKE_REGION}
+                '''
+            }
+        }
+
+        stage('Approve Deployment') {
+            steps {
+                input message: "Do you want to deploy ${IMAGE_NAME}:${IMAGE_TAG} to GKE?"
+            }
+        }
+
+        stage('Deploy to GKE') {
+            steps {
+                sh """
+                  # Update the deployment image
+                  kubectl set image deployment/admin-deployment \
+                  admin-container=${GCR_IMAGE}
+
+                  # Monitor rollout status
+                  kubectl rollout status deployment/admin-deployment
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment completed successfully!"
+        }
+        failure {
+            echo "Deployment failed!"
+        }
+    }
+}
