@@ -1,3 +1,6 @@
+# -------------------------------
+# Deployment for admin app
+# -------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,3 +30,24 @@ spec:
           limits:
             cpu: 500m
             memory: 512Mi
+
+---
+
+# -------------------------------
+# Service for admin app
+# -------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  labels:
+    app: admin-app
+spec:
+  selector:
+    app: admin-app
+  type: NodePort   # exposes service on node IP
+  ports:
+    - protocol: TCP
+      port: 80       # external port inside cluster
+      targetPort: 80 # container port
+      nodePort: 30080 # port exposed on node IP
