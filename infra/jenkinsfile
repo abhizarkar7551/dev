@@ -33,21 +33,12 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 dir("${TERRAFORM_DIR}") {
+                    // Ask for manual approval
                     input message: "Do you want to apply Terraform changes?"
                     sh 'terraform apply -auto-approve tfplan'
                 }
             }
         }
 
-    }
-
-    post {
-        success {
-            echo "Infra created successfully. Triggering CI pipeline..."
-            build job: 'ci', wait: false
-        }
-        failure {
-            echo "Infra pipeline failed. CI pipeline will NOT run."
-        }
-    }
+    } // end of stages
 }
