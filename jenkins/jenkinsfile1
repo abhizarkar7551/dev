@@ -1,15 +1,12 @@
-# cd pipeline
-
 pipeline {
-    agent { label 'agent-v' }
+    agent { label 'jenkins-agent' }  // same agent as CI
 
     environment {
         GCP_PROJECT = "prod-project-477306"
-        GKE_CLUSTER = "gke-standard-cluster"  // your cluster name
-        GKE_REGION  = "us-central1-a"        // your cluster region/zone
-        IMAGE_NAME  = "myapp"
-        IMAGE_TAG   = "latest"                // or use BUILD_NUMBER for versioning
-        GCR_IMAGE   = "us.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}"
+        GKE_CLUSTER = "gke-standard-cluster"
+        GKE_REGION  = "us-central1-a"
+        DEPLOYMENT_FILE = "k8s/admin-deployment-service.yaml"
+        INGRESS_FILE = "k8s/admin-ingress.yaml"
     }
 
     stages {
@@ -22,7 +19,7 @@ pipeline {
 
         stage('Authenticate to GCP') {
             steps {
-                withCredentials([file(credentialsId: 'gcr-sa-key', variable: 'GCP_KEY')]) {
+                withCredentials([file(credentialsId: 'my-global-sa', variable: 'GCP_KEY')]) {
                     sh '''
                       gcloud auth activate-service-account --key-file=$GCP_KEY
                       gcloud config set project ${GCP_PROJECT}
@@ -33,28 +30,27 @@ pipeline {
 
         stage('Get GKE Credentials') {
             steps {
-                sh '''
+                sh """
                   gcloud container clusters get-credentials ${GKE_CLUSTER} \
                   --region ${GKE_REGION}
-                '''
+                """
             }
         }
 
-        stage('Approve Deployment') {
-            steps {
-                input message: "Do you want to deploy ${IMAGE_NAME}:${IMAGE_TAG} to GKE?"
-            }
-        }
-
-        stage('Deploy to GKE') {
+        stage('Deploy Deployment + Service') {
             steps {
                 sh """
-                  # Update the deployment image
-                  kubectl set image deployment/admin-deployment \
-                  admin-container=${GCR_IMAGE}
+                  kubectl apply -f ${DEPLOYMENT_FILE}
+                  kubectl rollout status deployment/admin-deployment --timeout=120s
+                """
+            }
+        }
 
-                  # Monitor rollout status
-                  kubectl rollout status deployment/admin-deployment
+        stage('Deploy Ingress') {
+            steps {
+                sh """
+                  kubectl apply -f ${INGRESS_FILE}
+                  kubectl get ingress admin-ingress
                 """
             }
         }
@@ -62,10 +58,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment completed successfully!"
+            echo "✅ Deployment and Ingress applied successfully!"
         }
         failure {
-            echo "Deployment failed!"
+            echo "❌ Deployment failed! Check logs."
         }
     }
 }
