@@ -5,7 +5,7 @@ pipeline {
         GCP_PROJECT     = "prod-project-477306"
         GKE_CLUSTER     = "gke-standard-cluster"
         GKE_REGION      = "us-central1-a"
-        DEPLOYMENT_FILE = "k8s/admin-deployment-service.yaml" // point to actual deployment YAML
+        DEPLOYMENT_FILE = "k8s/" // point to actual deployment YAML
         IMAGE_NAME      = "myapp"
         IMAGE_TAG       = "latest"  // or use CI build number/GIT_COMMIT for versioning
         GCR_REGION      = "us"
@@ -64,3 +64,4 @@ pipeline {
     }
 
 } // end of pipeline
+
