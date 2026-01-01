@@ -6,7 +6,7 @@ metadata:
     kubernetes.io/ingress.class: "gce"  # GKE default Ingress controller
 spec:
   rules:
-  - host: api.a-sysops.in
+  - host: admin.a-sysops.in
     http:
       paths:
       - path: /
