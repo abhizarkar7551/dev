@@ -6,7 +6,7 @@ pipeline {
         GKE_CLUSTER = "gke-standard-cluster"
         GKE_REGION  = "us-central1-a"
         DEPLOYMENT_FILE = "k8s/admin-deployment-service.yaml"
-        INGRESS_FILE = "k8s/admin-ingress.yaml"
+        INGRESS_FILE = "k8s/"
     }
 
     stages {
@@ -46,15 +46,6 @@ pipeline {
             }
         }
 
-        stage('Deploy Ingress') {
-            steps {
-                sh """
-                  kubectl apply -f ${INGRESS_FILE}
-                  kubectl get ingress admin-ingress
-                """
-            }
-        }
-    }
 
     post {
         success {
@@ -65,3 +56,4 @@ pipeline {
         }
     }
 }
+
