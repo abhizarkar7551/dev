@@ -50,6 +50,8 @@ pipeline {
             echo "CI pipeline failed. CD pipeline will NOT run."
         }
     }
-}
 
 */
+}
+
+
