@@ -2,26 +2,25 @@ pipeline {
     agent { label 'jenkins-agent' }  // same agent as CI
 
     environment {
-        GCP_PROJECT = "prod-project-477306"
-        GKE_CLUSTER = "gke-standard-cluster"
-        GKE_REGION  = "us-central1-a"
-        DEPLOYMENT_FILE = "k8s/"
+        GCP_PROJECT     = "prod-project-477306"
+        GKE_CLUSTER     = "gke-standard-cluster"
+        GKE_REGION      = "us-central1-a"
+        DEPLOYMENT_FILE = "k8s/admin-deployment-service.yaml" // point to actual deployment YAML
+        IMAGE_NAME      = "myapp"
+        IMAGE_TAG       = "latest"  // or use CI build number/GIT_COMMIT for versioning
+        GCR_REGION      = "us"
+        GCR_IMAGE       = "${GCR_REGION}.gcr.io/${GCP_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
-
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main', url: 'https://github.com/abhizarkar7551/dev.git'
-            }
-        }
 
         stage('Authenticate to GCP') {
             steps {
                 withCredentials([file(credentialsId: 'my-global-sa', variable: 'GCP_KEY')]) {
                     sh '''
-                      gcloud auth activate-service-account --key-file=$GCP_KEY
-                      gcloud config set project ${GCP_PROJECT}
+                        gcloud auth activate-service-account --key-file=$GCP_KEY
+                        gcloud config set project ${GCP_PROJECT}
+                        gcloud auth configure-docker --quiet
                     '''
                 }
             }
@@ -36,26 +35,32 @@ pipeline {
             }
         }
 
-        stage('Deploy Deployment + Service') {
+       
+        stage('Deploy/Update Deployment + Service') {
             steps {
                 sh """
-                  kubectl apply -f ${DEPLOYMENT_FILE}
-                  kubectl rollout status deployment/admin-deployment --timeout=120s
+                    # Apply Service & Deployment YAML in case anything changed
+                    kubectl apply -f ${DEPLOYMENT_FILE}
+
+                    # Update Deployment with the latest image from CI
+                    kubectl set image deployment/admin-deployment \
+                        admin-container=${GCR_IMAGE}
+
+                    # Wait for the rollout to complete
+                    kubectl rollout status deployment/admin-deployment --timeout=180s
                 """
             }
         }
 
-    } // <-- end of stages
+    } // end of stages
 
     post {
         success {
-            echo "✅ Deployment and Ingress applied successfully!"
+            echo "✅ Production deployment successful: ${GCR_IMAGE}"
         }
         failure {
-            echo "❌ Deployment failed! Check logs."
+            echo "❌ Production deployment failed! Check logs and rollback if necessary."
         }
     }
 
-} // <-- end of pipeline
-
-
+} // end of pipeline
