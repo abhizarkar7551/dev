@@ -38,3 +38,23 @@ pipeline {
         }
 
         stage('Deploy Deployment + Service') {
+            steps {
+                sh """
+                  kubectl apply -f ${DEPLOYMENT_FILE}
+                  kubectl rollout status deployment/admin-deployment --timeout=120s
+                """
+            }
+        }
+
+    } // <-- end of stages
+
+    post {
+        success {
+            echo "✅ Deployment and Ingress applied successfully!"
+        }
+        failure {
+            echo "❌ Deployment failed! Check logs."
+        }
+    }
+
+} // <-- end of pipeline
